@@ -14,7 +14,7 @@ options(scipen = 999)
 
 # 1 - Data ----
 
-football_odds <- readRDS(file = "./data/football_data.RDS")
+football_odds <- readRDS(file = "./data-raw/football_data.RDS")
 
 # Odds Abbreviations for 1x2 in Football-data.co.uk
 odds_abbs <- list(Bet365 = c("B365H", "B365D", "B365A"), Bwin = c("BWH", "BWD", "BWA"),
@@ -76,7 +76,11 @@ simulate_ftr <- function(probabilities) {
   return(ftr_sim)
 }
 
-# partitioning the odds space
+# partitioning the odds space to 0.01 intervals of overround props
+# @params: 
+# nbets: Number of bets to allocate
+# fair_odds: T if to bet on fair odds
+# sim_results: T to simulate Full time Result, F to use actual results
 simulate_bet <- function(data, bookmaker, nbets = 100, fair_odds = F, sim_results = F, nsims = 5000) {
   
   params <- as.list(environment())[2:5]
