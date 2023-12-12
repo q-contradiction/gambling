@@ -14,11 +14,7 @@ options(scipen = 999)
 
 # 1 - Data ----
 
-<<<<<<< HEAD
 football_odds <- readRDS(file = "./data-raw/football-data.RDS")
-=======
-football_odds <- readRDS(file = "./data-raw/football_data.RDS")
->>>>>>> cfc4b08049fddbdc57e1459ef6a5554ebeadaf0b
 
 # Odds Abbreviations for 1x2 in Football-data.co.uk
 odds_abbs <- list(Bet365 = c("B365H", "B365D", "B365A"), Bwin = c("BWH", "BWD", "BWA"),
