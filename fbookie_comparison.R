@@ -20,7 +20,6 @@ options(scipen = 999)
 # 1 - Load Football data ----
 
 football_odds <- readRDS(file = "./data-raw/football-data.rds")
-# 2 - Build Odds Comparison Table ----
 
 # Market/avg,max & Betbrain/avg,max are the same variables
 # Substitute where avg/max market odds are NA with Betbrain odds
@@ -73,6 +72,7 @@ football_odds <- football_odds %>%
   mutate(ID = seq(1, nrow(.), 1), 
          FTL = ifelse(FTHG + FTAG > 2, "O", "U"))
 
+# 2 - Build Odds Comparison Table ----
 
 fair_probabilities <- function(data, odds, market, desc) {
   
@@ -97,7 +97,7 @@ fair_probabilities <- function(data, odds, market, desc) {
   return (data)
 }
 
-# melt data
+# long format | custom melt
 transform_data <- function(data, market) {
   
   # Create separate tables for {Home, Draw, Away} | {Over, Under}
@@ -200,8 +200,10 @@ odds_comparison <- combinations %>%
   bind_rows()
 
 
-odds_comparison <- readRDS("./odds_comparison.rds")
-# 3 - Analyze Odds ----
+# Cached table
+# odds_comparison <- readRDS("./odds_comparison.rds")
+
+# 3 - Analyze table ----
 
 analyze_odds <- function(comparison_table, bookies_ref, bookies_bet) {
   
