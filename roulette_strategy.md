@@ -4,7 +4,7 @@ Thanos Livanis
 13/12/2023
 
 **Analysis & simulation of *Gambler’s Ruin* problem in Roulette under
-different betting strategies & circumastances**
+different betting strategies & circumstances**
 
 -   [Analysis](#analysis)
     -   [Profit & Loss](#pnl-distribution)
@@ -14,14 +14,15 @@ different betting strategies & circumastances**
     -   [Description](#description)
     -   [Martingale](#martingale)
     -   [Simulation](#simulation)
-
-@to do: Part2 Comments and Graphs
+        -   [Roulette Ruin](#roulette-ruin)
+        -   [Casino Night](#casino-night)
 
 ``` r
 rm(list = ls())
 
+library(reshape2)
 library(tidyverse)
-library(gridExtra)
+library(ggpubr)
 library(ggthemr)
 
 options(scipen = 999)
@@ -75,16 +76,19 @@ ggthemr("flat")
 
 pl_density <- returns %>% filter(roulette == "European") %>%
   ggplot(aes(x = PnL, color = bet)) +
-  geom_density(adjust = 1.5, show.legend = F) + 
+  geom_density(adjust = 2, linewidth = 1) + 
+  theme(legend.position="none") +
   coord_cartesian(xlim = c(-500, 500)) 
 
 pl_box <- returns %>% filter(roulette == "European") %>%
   ggplot(aes(x = bet, y = PnL, fill = bet)) +
   geom_boxplot() +
-  guides(color = guide_legend(title = "Bet")) +
-  theme(axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) 
+  theme(axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), 
+        legend.position="none") 
 
-grid.arrange(pl_density, pl_box, ncol=2, top = "Profit & Loss distribution after 1000 European Roulette Spins")
+pl <- ggarrange(pl_box, pl_density, nrow = 2, common.legend = F)
+annotate_figure(pl, top = text_grob("Profit & Loss distribution after 1000 European Roulette Spins", 
+                                    face = "bold", size = 12))
 ```
 
 ![](roulette_strategy_files/figure-gfm/pnl_distribution-1.png)<!-- -->
@@ -92,8 +96,13 @@ grid.arrange(pl_density, pl_box, ncol=2, top = "Profit & Loss distribution after
 ### Profit Probability
 
 If we spin the Roulette N times and win M bets:
-PnL = *M* ⋅ payout − (*N*−*M*). Thus: *M* \> *N* ÷ (payout+1)  
+PnL = *M* ⋅ payout − (*N*−*M*). Thus:
+$M > \\frac{N}{\\text{payout} + 1}$  
 Profit Probability = *P*(*X*≥⌈*M*⌉) = pbinom(⌊*M*⌋,Spins,*p*,lower.tail = F)
+
+It is easier to make a profit from Straight & Split bets than betting on
+Red, due to higher variance. There is more inherent randomness
+associated with unlikely events.
 
 ``` r
 prop_profit <- function(roulette, bet, nspins) {
@@ -135,10 +144,11 @@ event*, with decimal odds, fair odds and fair probability 1, 37/36 and
 Thus fair odds of {37/36, 37} are mapped to roulette odds {1, 36},
 $rouletteOdds > \\frac{fairOdds}{1 + M}$ 
 
-**Contrary to Sports betting there isn’t any longshot bias.** Typically
-in Sports betting a margin of 1/36 applied to fair probabilities of
-(1/37, 36/37), would result in odds of {1.016, 22.63} using a method
-called odds ratio. 
+**Contrary to Sports betting there isn’t any longshot bias**, where the
+returns from long odds are smaller than short odds. Typically in Sports
+betting a margin of 1/36 applied to fair probabilities of (1/37, 36/37),
+would result in odds of {1.016, 22.63}, using a method called odds
+ratio. 
 
 Let’s visualize how the margin is applied to a probability event. The
 margin of an event i with odds of o and probability p is:
@@ -180,11 +190,6 @@ ggplot() +
 
 ![](roulette_strategy_files/figure-gfm/applied_margin-1.png)<!-- -->
 
-In sports betting longshots tend to have lower expected value. Thus
-there is a much higher chance to profit from long shots due to higher
-standard deviation returns, but obviously we can still suffer heavier
-losses.
-
 ## Gamblers Ruin in Roulette
 
 ### Description
@@ -196,16 +201,16 @@ probability p or loses 1 with probability 1 − p. The gambler will stop
 playing if either N dollars are accumulated or all money has been
 lost.  
 
-In our case the Gambler starts with an initial Capital & stops until he
-is ruined or reaches his target. He has the option to bet on an American
-or European Roulette and can choose to bet on a Straight, Split, Red
-etc. There are three betting strategies he can choose from:
+In our case the gambler starts with an initial capital & stops until he
+is ruined, reaches his target or after a specified number of spins. He
+has the option to bet on a Straight, Split, Red etc. There are three
+betting strategies:
 
 **1. Default**  
-The gambler makes a constant bet, say $1  
+The gambler makes a constant bet, $n.
 
 **2. Martingale**  
-The gambler starting with $1, tries to cover all previous consecutive
+The gambler starting with $n, tries to cover all previous consecutive
 losses and make a profit. The strategy is typical for even odds, where
 we double our initial stake, but can be extended to uneven odds as well.
 
@@ -213,17 +218,17 @@ we double our initial stake, but can be extended to uneven odds as well.
 The gambler bets his entire capital.
 
 All betting strategies are limited by the current bank (we can’t bet
-more than we have), we can’t bet more than the Casino Limit, and most
+more than we have), we can’t bet more than the casino limit, and most
 important **we never bet more money than we need to reach our target.** 
 Thus the bold strategy doesn’t necessarily mean we always put all money.
 If our current bank is 80, our target is 100 and we bet on red, we will
-place 20$
+place $20.
 
 ### Martingale
 
 Suppose that we bet 1$ to an event with payout p, expecting to make p
-units profit, *S*<sub>0</sub> = 1 If we lose the bet, in order to cover
-the loss and make p units profit, the next bet has to be:
+units profit, *S*<sub>0</sub> = 1 If we lose, in order to cover the loss
+and make p units profit, the next bet has to be:
 $S_1 = \\frac{p + 1}{p} = 1 + \\frac{1}{p}$. If
 *S*<sub>*n* − 1</sub> = *x*<sup>*n* − 1</sup>, where
 $x = 1 + \\frac{1}{p}$, then after n-1 consecutive loses,
@@ -232,28 +237,29 @@ $S_n = \\frac{p + \\frac{1-x^n}{1-x}}{p} = 1 + \\frac{1 - x^n}{(1-x)p}$
 Substituting x, we get:  
 $S_n = x^n = (1+\\frac{1}{p})^n$  
 
+In the general case: $S_n = S_o(1+\\frac{1}{p})^n$  
+
 ``` r
 ggthemr("flat")
 
-martingale_stakes <- function(payout, consecutive_loses) {
+martingale_stakes <- function(payout, consecutive_loses, unit) {
   
-  params <- as.list(environment())
-  
+  params <- as.list(environment())[1:2]
   stake <- vector("double", consecutive_loses)
   
   for (i in seq_along(stake)) 
-    stake[i] <- 1 + sum(stake[1:(i-1)])/payout
+    stake[i] <- unit + sum(stake[1:(i-1)])/payout
   
-  stake <- bind_cols(params, data.frame(stake = round(1 + sum(stake)/payout, 3))) 
+  stake <- bind_cols(params, data.frame(stake = round(unit + sum(stake)/payout, 3))) 
 }
 
 expand.grid(payout = unique(roulette_table$payout),
-                      consecutive_loses = 0:10) %>%
-  pmap_dfr(martingale_stakes) %>% 
+            consecutive_loses = 0:15) %>%
+  pmap_dfr(martingale_stakes, unit = 1) %>%
   left_join(roulette_table[roulette_table$type == "European", c("payout", "bet")], by = "payout") %>%
   ggplot(aes(x = consecutive_loses, y = stake, color = bet)) +
   geom_point() + 
-  scale_x_continuous(breaks = 0:10) +
+  scale_x_continuous(breaks = 0:15) +
   scale_y_continuous(trans='log2') +
   labs(x = "Losing Streak", y = "Stake", title = "Martingale Stakes starting with 1$")
 ```
@@ -266,6 +272,7 @@ expand.grid(payout = unique(roulette_table$payout),
 # @params:
 # @roulette: "European" | "American"
 # @bet: {Straight, Split, Street...}
+# @unit_bet: unit stake on Default Strategy and Martingale
 # @max_bet: Casino limit
 
 # @strategy: Default| Martingale | Bold
@@ -274,9 +281,10 @@ expand.grid(payout = unique(roulette_table$payout),
 # Bold: Bet the whole bank
 # All strategies limited by current bank, max bet allowed by casino and
 # **We never bet more than we actually need to reach our target.**
-play_roulette <- function(roulette, bet, starting_bank, target_bank, max_bet, max_spins, strategy, plot = F) {
+play_roulette <- function(roulette, bet, starting_bank, target_bank, unit_bet, 
+                          max_bet, max_spins, strategy, plot = F) {
   
-  params <- as.list(environment())[1:7]
+  params <- as.list(environment())[1:8]
   
   id <- which(roulette_table$type == roulette & roulette_table$bet == bet)
   prop <- roulette_table$prop[id]; payout <- roulette_table$payout[id]
@@ -292,9 +300,9 @@ play_roulette <- function(roulette, bet, starting_bank, target_bank, max_bet, ma
   
   stake_fun <- function(strategy) {
     if (strategy == "Default")
-      function(bank, payout, ls) 1
+      function(bank, payout, ls) unit_bet
     else if (strategy == "Martingale")
-      function(bank, payout, ls) (1 + 1/payout)^ls
+      function(bank, payout, ls) unit_bet*(1 + 1/payout)^ls
     else 
       function(bank, payout, ls) bank
   }
@@ -343,9 +351,10 @@ expand.grid(roulette = "European",
             bet = c("Straight", "Corner", "Red"),
             starting_bank = 50,
             target_bank = 100, 
-            strategy = c("Default", "Martingale", "Bold"),
+            unit_bet = 1,
             max_bet = 100, 
-            max_spins = 10^5) %>%
+            max_spins = 10^5,
+            strategy = c("Default", "Martingale", "Bold")) %>%
   pmap_dfr(play_roulette) %>%
   ggplot(aes(x = spins, y = bank, color = bet)) +
   geom_line() +
@@ -360,14 +369,17 @@ expand.grid(roulette = "European",
 
 ``` r
 # Simulate roulette round several times and & extract stats
-simulate <- function(roulette, bet, starting_bank, target_bank, max_bet, max_spins, strategy) {
+# Probability to reach target, to make a profit & to go bankrupt
+simulate <- function(roulette, bet, starting_bank, target_bank, unit_bet, max_bet, max_spins, strategy) {
   
   set.seed(1)
-  nsims <- 200
+  nsims <- 5000
   
-  mc_results <- replicate(nsims, play_roulette(roulette, bet, starting_bank, target_bank, max_bet, max_spins, strategy), simplify = F) %>%
+  mc_results <- replicate(nsims, play_roulette(roulette, bet, starting_bank, target_bank, 
+                                               unit_bet, max_bet, max_spins, strategy), 
+                          simplify = F) %>%
     map_dfr(~tail(., 1)) %>%
-    group_by(across(4:10)) %>%
+    group_by(across(4:11)) %>%
     summarize(p_profit = mean(bank > starting_bank),
               p_profit_se = sqrt(p_profit*(1-p_profit)/nsims),
               
@@ -382,19 +394,98 @@ simulate <- function(roulette, bet, starting_bank, target_bank, max_bet, max_spi
               spins_exp = mean(spins),
               spins_exp_se = sd(spins)/sqrt(nsims),
               spins_longest = max(spins),
+              
               .groups = "drop") 
 }
 ```
 
+#### Roulette Ruin
+
+Let’s simulate a variance of Gambler’s Ruin. In the below simulation,
+given the big number of spins, the gambler plays until he reaches his
+target or he is ruined under the 3 strategies.
+
+The results can be summarized this way: In a game with negative expected
+value, where we play till the end, we have to limit the number of
+trials, otherwise the law of the large numbers. It’s almost impossible
+the
+
 ``` r
-params_ruin <- expand.grid(roulette = "European",
+params_ruin <- expand.grid(roulette = c("European"),
                            bet = unique(roulette_table$bet),
                            starting_bank = 50,
                            target_bank = 100, 
-                           max_bet = 100, 
+                           unit_bet = 1,
+                           max_bet = 1000, 
                            max_spins = 10^5,
                            strategy = c("Default", "Martingale", "Bold"))
 
 sim_ruin <- params_ruin %>%
   pmap_dfr(simulate, .progress = T)
+
+ggthemr("flat")
+
+pl_prop <- sim_ruin %>% 
+  ggplot(aes(x = strategy, y = p_target, fill = bet)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  geom_errorbar(aes(ymin = p_target - 1.96*p_target_se, ymax = p_target + 1.96*p_target_se, color = bet),  
+                width = .2, position = position_dodge(.9), show.legend = F) + 
+  labs(y = "Target Probability") +
+  theme(axis.title.x = element_blank()) 
+
+pl_spins <- sim_ruin %>% 
+  ggplot(aes(x = strategy, y = spins_exp, fill = bet)) +
+  geom_bar(stat="identity", position = "dodge", color = "black") +
+  scale_y_continuous(trans='log2') +
+  labs(y = "Average Number of Spins") +
+  theme(axis.title.x=element_blank())
+
+
+pl <- ggarrange(pl_prop, pl_spins, ncol = 2, common.legend = T, legend = "right")
+annotate_figure(pl, top = text_grob(paste("Roulette Ruin:", 
+                                          paste(c("Starting Bank", "Target Bank", "Unit"), "=",
+                                          c(unique(sim_ruin$starting_bank), 
+                                            unique(sim_ruin$target_bank), 
+                                            unique(sim_ruin$unit_bet)),
+                                          collapse = ", ")), 
+                                    face = "bold", size = 12))
 ```
+
+![](roulette_strategy_files/figure-gfm/roulette_ruin-1.png)<!-- -->
+
+#### Casino Night
+
+A simulation of a night at Casino. The gambler walks in with 2000$.
+
+``` r
+params_real <- expand.grid(roulette = c("European"),
+                           bet = unique(roulette_table$bet),
+                           starting_bank = 2000,
+                           target_bank = 3000, 
+                           unit_bet = 5,
+                           max_bet = 1000, 
+                           max_spins = 200,
+                           strategy = c("Default", "Martingale", "Bold"))
+
+sim_real <- params_real %>%
+  pmap_dfr(simulate, .progress = T)
+
+ggthemr("flat")
+
+sim_real %>% melt(measure.vars = c("p_profit", "p_target", "p_bankrupt")) %>%
+  mutate(se = ifelse(variable == "p_profit", p_profit_se, ifelse(variable == "p_target", p_target_se, p_bankrupt_se))) %>%
+  ggplot(aes(x = strategy, y = value, fill = bet)) +
+  geom_bar(stat="identity", position = "dodge", color = "black") +
+  geom_errorbar(aes(ymin = value - 1.96*se, ymax = value + 1.96*se, color = bet),  
+                width = .2, position = position_dodge(.9), show.legend = F) + 
+  facet_grid(variable ~.) +
+  labs(y = "Probability", title = paste("Casino Night:", 
+                                        paste(c("Starting Bank", "Target Bank", "Unit Bet"), "=",
+                                              c(unique(sim_real$starting_bank), 
+                                                unique(sim_real$target_bank), 
+                                                unique(sim_real$unit_bet)), 
+                                              collapse = ", "))) +
+  theme(axis.title.x=element_blank(), plot.title = element_text(size = 12, face = "bold", hjust = 0.5)) 
+```
+
+![](roulette_strategy_files/figure-gfm/casino_night-1.png)<!-- -->
