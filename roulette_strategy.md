@@ -147,7 +147,7 @@ $rouletteOdds > \\frac{fairOdds}{1 + M}$ 
 **Contrary to Sports betting there isn’t any longshot bias**, where the
 returns from long odds are smaller than short odds. Typically in Sports
 betting a margin of 1/36 applied to fair probabilities of (1/37, 36/37),
-would result in odds of {1.016, 22.63}, using a method called odds
+would result in odds of {22.63, 1.016}, using a method called odds
 ratio. 
 
 Let’s visualize how the margin is applied to a probability event. The
@@ -211,8 +211,9 @@ The gambler makes a constant bet, $n.
 
 **2. Martingale**  
 The gambler starting with $n, tries to cover all previous consecutive
-losses and make a profit. The strategy is typical for even odds, where
-we double our initial stake, but can be extended to uneven odds as well.
+losses and make a profit $(n\*payout). The strategy is typical for even
+odds, where we double our initial stake, but can be extended to uneven
+odds as well.
 
 **3. Bold**  
 The gambler bets his entire capital.
@@ -227,8 +228,8 @@ place $20.
 ### Martingale
 
 Suppose that we bet 1$ to an event with payout p, expecting to make p
-units profit, *S*<sub>0</sub> = 1 If we lose, in order to cover the loss
-and make p units profit, the next bet has to be:
+units profit, *S*<sub>0</sub> = 1. If we lose, in order to cover the
+loss and make p units profit, the next bet has to be:
 $S_1 = \\frac{p + 1}{p} = 1 + \\frac{1}{p}$. If
 *S*<sub>*n* − 1</sub> = *x*<sup>*n* − 1</sup>, where
 $x = 1 + \\frac{1}{p}$, then after n-1 consecutive loses,
@@ -276,8 +277,8 @@ expand.grid(payout = unique(roulette_table$payout),
 # @max_bet: Casino limit
 
 # @strategy: Default| Martingale | Bold
-# Default: bet 1$
-# Martingale: Generalized martingale in uneven odds, where the current bet covers all previous losses. first bet 1$
+# Default: constant bet
+# Martingale: Generalized martingale in uneven odds, where the current bet covers all previous losses
 # Bold: Bet the whole bank
 # All strategies limited by current bank, max bet allowed by casino and
 # **We never bet more than we actually need to reach our target.**
@@ -292,7 +293,6 @@ play_roulette <- function(roulette, bet, starting_bank, target_bank, unit_bet,
   current_bank <- starting_bank
   losing_streak <- 0
   
-  # Allocate big enough containers to speed iteration
   series <- vector("double", max_spins + 1); stake <- vector("double", max_spins + 1)
   
   series[1] <- current_bank
@@ -386,8 +386,8 @@ simulate <- function(roulette, bet, starting_bank, target_bank, unit_bet, max_be
               p_target = mean(bank >= target_bank), 
               p_target_se = sqrt(p_target*(1-p_target)/nsims),
               
-              p_bankrupt = mean(bank == 0), 
-              p_bankrupt_se = sqrt(p_bankrupt*(1-p_bankrupt)/nsims),
+              p_ruin = mean(bank == 0), 
+              p_ruin_se = sqrt(p_ruin*(1-p_ruin)/nsims),
               
               bank_exp = mean(bank),
               
@@ -402,13 +402,13 @@ simulate <- function(roulette, bet, starting_bank, target_bank, unit_bet, max_be
 #### Roulette Ruin
 
 Let’s simulate a variance of Gambler’s Ruin. In the below simulation,
-given the big number of spins, the gambler plays until he reaches his
-target or he is ruined under the 3 strategies.
+given the large number of spins, the gambler plays until he reaches his
+target or is ruined under the three strategies.
 
-The results can be summarized this way: In a game with negative expected
-value, where we play till the end, we have to limit the number of
-trials, otherwise the law of the large numbers. It’s almost impossible
-the
+The results can be summarized this way: In a game with a negative
+expected value, where we play until the end, we have to limit the number
+of trials; otherwise, the law of large numbers leads us to ruin. The
+best strategy in this case is the bold strategy.
 
 ``` r
 params_ruin <- expand.grid(roulette = c("European"),
@@ -455,7 +455,9 @@ annotate_figure(pl, top = text_grob(paste("Roulette Ruin:",
 
 #### Casino Night
 
-A simulation of a night at Casino. The gambler walks in with 2000$.
+A simulation of a night at Casino. Gambler walks in with $2000 and he
+will try at most 200 spins under the 3 strategies. He aims for $3000 and
+unit bet is $5.
 
 ``` r
 params_real <- expand.grid(roulette = c("European"),
@@ -472,8 +474,8 @@ sim_real <- params_real %>%
 
 ggthemr("flat")
 
-sim_real %>% melt(measure.vars = c("p_profit", "p_target", "p_bankrupt")) %>%
-  mutate(se = ifelse(variable == "p_profit", p_profit_se, ifelse(variable == "p_target", p_target_se, p_bankrupt_se))) %>%
+sim_real %>% melt(measure.vars = c("p_profit", "p_target", "p_ruin")) %>%
+  mutate(se = ifelse(variable == "p_profit", p_profit_se, ifelse(variable == "p_target", p_target_se, p_ruin_se))) %>%
   ggplot(aes(x = strategy, y = value, fill = bet)) +
   geom_bar(stat="identity", position = "dodge", color = "black") +
   geom_errorbar(aes(ymin = value - 1.96*se, ymax = value + 1.96*se, color = bet),  
