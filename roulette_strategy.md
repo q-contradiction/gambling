@@ -3,7 +3,7 @@ Roulette Strategy
 Thanos Livanis
 13/12/2023
 
-**Analysis & simulation of *Gambler’s Ruin* problem in Roulette under
+**Analysis & simulation of *Gambler’s Ruin* problem in roulette under
 different betting strategies & circumstances**
 
 -   [Analysis](#analysis)
@@ -60,9 +60,8 @@ spin_wheel <- function(roulette, bet, nspins){
   
   spins = rbinom(nspins, 1, prop)
   
-  list(PnL = sum(ifelse(spins, payout, -1))) %>% bind_cols(params)
+  list(Yield = sum(ifelse(spins, payout, -1))/nspins) %>% bind_cols(params)
 }
-
 
 returns <- expand.grid(roulette = c("European", "American"),
                        bet = unique(roulette_table$bet),
@@ -74,21 +73,14 @@ returns <- expand.grid(roulette = c("European", "American"),
 ``` r
 ggthemr("flat")
 
-pl_density <- returns %>% filter(roulette == "European") %>%
-  ggplot(aes(x = PnL, color = bet)) +
-  geom_density(adjust = 2, linewidth = 1) + 
-  theme(legend.position="none") +
-  coord_cartesian(xlim = c(-500, 500)) 
-
-pl_box <- returns %>% filter(roulette == "European") %>%
-  ggplot(aes(x = bet, y = PnL, fill = bet)) +
+returns %>% filter(roulette == "European") %>%
+  ggplot(aes(x = bet, y = Yield, fill = bet)) +
   geom_boxplot() +
-  theme(axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), 
-        legend.position="none") 
-
-pl <- ggarrange(pl_box, pl_density, nrow = 2, common.legend = F)
-annotate_figure(pl, top = text_grob("Profit & Loss distribution after 1000 European Roulette Spins", 
-                                    face = "bold", size = 12))
+  scale_y_continuous(breaks = seq(-0.5, 0.5, 0.1), labels = scales::percent_format(accuracy=1)) +
+  theme(axis.title.x = element_blank(), 
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1,size = 12), 
+        legend.position="none") +
+  labs(title = "Yield distribution ~ 1000 European Roulette Spins")
 ```
 
 ![](roulette_strategy_files/figure-gfm/pnl_distribution-1.png)<!-- -->
@@ -101,8 +93,7 @@ $M > \\frac{N}{\\text{payout} + 1}$
 Profit Probability = *P*(*X*≥⌈*M*⌉) = pbinom(⌊*M*⌋,Spins,*p*,lower.tail = F)
 
 It is easier to make a profit from Straight & Split bets than betting on
-Red, due to higher variance. There is more inherent randomness
-associated with unlikely events.
+Red, due to higher variance.
 
 ``` r
 prop_profit <- function(roulette, bet, nspins) {
@@ -411,7 +402,7 @@ of trials; otherwise, the law of large numbers leads us to ruin. The
 best strategy in this case is the bold strategy.
 
 ``` r
-params_ruin <- expand.grid(roulette = c("European"),
+params_ruin <- expand.grid(roulette = "European",
                            bet = unique(roulette_table$bet),
                            starting_bank = 50,
                            target_bank = 100, 
@@ -442,12 +433,11 @@ pl_spins <- sim_ruin %>%
 
 
 pl <- ggarrange(pl_prop, pl_spins, ncol = 2, common.legend = T, legend = "right")
-annotate_figure(pl, top = text_grob(paste("Roulette Ruin:", 
-                                          paste(c("Starting Bank", "Target Bank", "Unit"), "=",
-                                          c(unique(sim_ruin$starting_bank), 
-                                            unique(sim_ruin$target_bank), 
-                                            unique(sim_ruin$unit_bet)),
-                                          collapse = ", ")), 
+annotate_figure(pl, top = text_grob(paste("Roulette Ruin\n", 
+                                          paste(c("Starting Bank", "Target Bank", "Unit", "Max Spins"), "=",
+                                                c(unique(sim_ruin$starting_bank), unique(sim_ruin$target_bank), 
+                                                  unique(sim_ruin$unit_bet), unique(sim_ruin$max_spins)),
+                                                                  collapse = ", ")), 
                                     face = "bold", size = 12))
 ```
 
@@ -460,7 +450,7 @@ will try at most 200 spins under the 3 strategies. He aims for $3000 and
 unit bet is $5.
 
 ``` r
-params_real <- expand.grid(roulette = c("European"),
+params_real <- expand.grid(roulette = "European",
                            bet = unique(roulette_table$bet),
                            starting_bank = 2000,
                            target_bank = 3000, 
@@ -477,17 +467,17 @@ ggthemr("flat")
 sim_real %>% melt(measure.vars = c("p_profit", "p_target", "p_ruin")) %>%
   mutate(se = ifelse(variable == "p_profit", p_profit_se, ifelse(variable == "p_target", p_target_se, p_ruin_se))) %>%
   ggplot(aes(x = strategy, y = value, fill = bet)) +
-  geom_bar(stat="identity", position = "dodge", color = "black") +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
   geom_errorbar(aes(ymin = value - 1.96*se, ymax = value + 1.96*se, color = bet),  
                 width = .2, position = position_dodge(.9), show.legend = F) + 
-  facet_grid(variable ~.) +
-  labs(y = "Probability", title = paste("Casino Night:", 
-                                        paste(c("Starting Bank", "Target Bank", "Unit Bet"), "=",
-                                              c(unique(sim_real$starting_bank), 
-                                                unique(sim_real$target_bank), 
-                                                unique(sim_real$unit_bet)), 
-                                              collapse = ", "))) +
-  theme(axis.title.x=element_blank(), plot.title = element_text(size = 12, face = "bold", hjust = 0.5)) 
+    facet_grid(variable ~.) +
+  labs(y = "Probability", title = "Casino Night", 
+       subtitle = paste(c("Starting Bank", "Target Bank", "Unit Bet", "Max Spins"), "=",
+                        c(unique(sim_real$starting_bank), unique(sim_real$target_bank), 
+                          unique(sim_real$unit_bet), unique(sim_real$max_spins)), 
+                        collapse = ", ")) +
+  theme(axis.title.x=element_blank(), plot.title = element_text(size = 12, face = "bold", hjust = 0.5), 
+        plot.subtitle = element_text(size = 12, face = "bold", hjust = 0.5))  
 ```
 
 ![](roulette_strategy_files/figure-gfm/casino_night-1.png)<!-- -->
