@@ -161,7 +161,7 @@ The gambler makes a constant bet, \$n.
 
 **2. Martingale**  
 The gambler starting with \$n, tries to cover all previous consecutive
-losses and make a profit \$(n\*payout). The strategy is typical for even
+losses and make a profit n\*payout. The strategy is typical for even
 odds, where we double our initial stake, but can be extended to uneven
 odds as well.
 
@@ -173,7 +173,7 @@ more than we have), we can’t bet more than the casino limit, and **we
 never bet more money than we need to reach our target.**  Thus the bold
 strategy doesn’t necessarily mean the gambler puts everything. If the
 current bank is 80, target is 100 and betting on black, he will place
-\$20.
+20.
 
 ### Martingale
 
