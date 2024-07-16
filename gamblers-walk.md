@@ -3,7 +3,7 @@ Gamblers Ruin
 Thanos Livanis
 11/12/2023
 
-## Generalization of Gambler’s Ruin
+## Generalization of gambler's walk in the classical gambler's ruin problem
 
 ``` r
 library(tidyverse)
@@ -110,7 +110,7 @@ simulate <- function(starting_capital, target_capital, prop, dim = 1, plot = F) 
 simulate(50, 100, 0.5, 1, T)
 ```
 
-![](gamblers-ruin_files/figure-gfm/1d-1.png)<!-- -->
+![](gamblers-walk_files/figure-gfm/1d-1.png)<!-- -->
 
     ## # A tibble: 1 × 7
     ##   win_prop walk_exp walk_longest starting_capital target_capital  prop   dim
@@ -123,7 +123,7 @@ simulate(50, 100, 0.5, 1, T)
 simulate(50, 100, 0.5, 2, T)
 ```
 
-![](gamblers-ruin_files/figure-gfm/2d-1.png)<!-- -->
+![](gamblers-walk_files/figure-gfm/2d-1.png)<!-- -->
 
     ## # A tibble: 1 × 7
     ##   win_prop walk_exp walk_longest starting_capital target_capital  prop   dim
@@ -141,4 +141,4 @@ simulate(50, 100, 0.5, 3, T)
     ##      <dbl>    <dbl>        <dbl>            <dbl>          <dbl> <dbl> <dbl>
     ## 1    0.129    4132.        18800               50            100   0.5     3
 
-![](gamblers-ruin_files/figure-gfm/3d-1.png)
+![](gamblers-walk_files/figure-gfm/3d-1.png)
