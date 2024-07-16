@@ -1,4 +1,4 @@
-Gamblers Ruin
+Gambler's Walk
 ================
 Thanos Livanis
 11/12/2023
